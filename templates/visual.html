@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>TCC - Visualización de Alertas</title>
+</head>
+<body>
+    <h1>Alertas activas:</h1>
+    <ul>
+        {% for alerta in alertas %}
+            <li>{{ alerta }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
