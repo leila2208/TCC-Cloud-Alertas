@@ -1,8 +1,8 @@
 from flask import Flask, request, render_template, jsonify
-import os
 
 app = Flask(__name__)
 
+# Lista para almacenar alertas (por ahora sólo en memoria)
 alertas = []
 
 @app.route("/")
@@ -25,5 +25,4 @@ def reset_alertas():
     return jsonify({"mensaje": "Alertas limpiadas"}), 200
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=5000)
