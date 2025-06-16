@@ -1,20 +1,69 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Panel de Administración</title>
-    <link rel="stylesheet" href="/static/styles.css">
+  <meta charset="UTF-8" />
+  <title>Panel de Administración</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    .icon-button {
+      position: fixed;
+      top: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: white;
+      border: none;
+      font-size: 20px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+      cursor: pointer;
+    }
+    .back-button {
+      left: 10px;
+    }
+    .logout-button {
+      right: 10px;
+    }
+    .alerta {
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-    <h1>Panel de Administración</h1>
+  <button class="icon-button back-button" onclick="window.location.href='https://tu-link-canva-celular'">←</button>
+  <button class="icon-button logout-button" onclick="window.location.href='/logout'">👤</button>
 
-    <div style="text-align:center; margin-bottom: 20px;">
-        <button onclick="limpiarAlertas()">🧹 Limpiar Alertas</button>
-        <a href="/logout"><button>Salir</button></a>
-    </div>
+  <h1>Panel de Administración</h1>
 
-    <div id="contenedor-alertas"></div>
+  <div style="text-align:center; margin-bottom: 20px;">
+    <button onclick="limpiarAlertas()">🧹 Limpiar Alertas</button>
+  </div>
 
-    <script src="/static/alertas.js"></script>
+  <div id="contenedor-alertas"></div>
+
+  <script src="/static/alertas.js"></script>
+  <script>
+    function limpiarAlertas() {
+      fetch('/limpiar', { method: 'POST' })
+        .then(() => actualizarAlertas());
+    }
+
+    function tacharAlerta(id) {
+      fetch('/tachar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      }).then(() => actualizarAlertas());
+    }
+
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('.alerta')) {
+        let alerta = e.target.closest('.alerta');
+        let id = alerta.dataset.id;
+        if (id) {
+          tacharAlerta(id);
+        }
+      }
+    });
+  </script>
 </body>
 </html>
