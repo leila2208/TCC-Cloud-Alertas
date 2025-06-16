@@ -16,7 +16,7 @@ function actualizarAlertas() {
                 let tachado = data.tachado ? true : false;
 
                 html += `
-                    <div class="alerta ${urgenciaClase} ${tachado ? 'tachado' : ''}">
+                    <div class="alerta ${urgenciaClase} ${tachado ? 'tachado' : ''}" data-id="${id}">
                         <p><strong>Camilla:</strong> ${data.camilla}</p>
                         <p><strong>Hora:</strong> ${data.hora}</p>
                         ${data.patologia ? `<p><strong>Patología:</strong> ${data.patologia}</p>` : ''}
