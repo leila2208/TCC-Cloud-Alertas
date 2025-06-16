@@ -1,5 +1,5 @@
 function actualizarAlertas() {
-    fetch(window.location.origin + '/datos')
+    fetch('/datos')
         .then(response => response.json())
         .then(alertas => {
             let html = '';
@@ -13,11 +13,10 @@ function actualizarAlertas() {
                 }
 
                 let id = data.camilla + '-' + data.hora + '-' + data.necesidad;
-                let tachado = localStorage.getItem(id) === 'true';
+                let tachado = data.tachado ? true : false;
 
                 html += `
-                    <div class="alerta ${urgenciaClase} ${tachado ? 'tachado' : ''}"
-                         onclick="toggleTachado('${id}', this)">
+                    <div class="alerta ${urgenciaClase} ${tachado ? 'tachado' : ''}">
                         <p><strong>Camilla:</strong> ${data.camilla}</p>
                         <p><strong>Hora:</strong> ${data.hora}</p>
                         ${data.patologia ? `<p><strong>Patología:</strong> ${data.patologia}</p>` : ''}
@@ -35,17 +34,6 @@ function actualizarAlertas() {
                 </div>
             `;
         });
-}
-
-function toggleTachado(id, element) {
-    const estado = localStorage.getItem(id) === 'true';
-    if (estado) {
-        localStorage.setItem(id, 'false');
-        element.classList.remove('tachado');
-    } else {
-        localStorage.setItem(id, 'true');
-        element.classList.add('tachado');
-    }
 }
 
 setInterval(actualizarAlertas, 2000);
