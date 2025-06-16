@@ -4,10 +4,46 @@
     <meta charset="UTF-8">
     <title>Alertas en tiempo real</title>
     <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .boton-accion {
+            position: fixed;
+            top: 20px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background-color: #0077b6;
+            color: white;
+            font-size: 20px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .volver {
+            left: 20px;
+        }
+        .login {
+            right: 20px;
+        }
+    </style>
 </head>
 <body>
     <h1>Alertas en tiempo real</h1>
+
+    <!-- Botón Volver a Canva -->
+    <button class="boton-accion volver" onclick="window.location.href='https://www.canva.com/tu-pagina-celular'">
+        ⬅
+    </button>
+
+    <!-- Botón Login -->
+    <button class="boton-accion login" onclick="window.location.href='/login'">
+        👤
+    </button>
+
     <div id="contenedor-alertas"></div>
+
     <script src="/static/alertas.js"></script>
 </body>
 </html>
