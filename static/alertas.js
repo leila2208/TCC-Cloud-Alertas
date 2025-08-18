@@ -1,40 +1,51 @@
-function actualizarAlertas() {
-    fetch('/datos')
-        .then(response => response.json())
-        .then(alertas => {
-            let html = '';
-            alertas.forEach(data => {
-                let urgenciaClase = '';
-                if (data.urgencia) {
-                    const u = data.urgencia.toLowerCase();
-                    if (u === 'baja') urgenciaClase = 'bajo';
-                    else if (u === 'media') urgenciaClase = 'medio';
-                    else if (u === 'alta') urgenciaClase = 'alto';
-                }
+function claseUrg(u){
+  if(!u) return 'bajo';
+  u = u.toLowerCase();
+  if(u === 'alta') return 'alto';
+  if(u === 'media') return 'medio';
+  return 'bajo';
+}
 
-                let id = data.camilla + '-' + data.hora + '-' + data.necesidad;
-                let tachado = data.tachado ? true : false;
+function itemAlertaHTML(a){
+  return `
+    <div class="alerta ${claseUrg(a.urgencia)} ${a.tachado ? 'tachado':''}" data-id="${a.id}">
+      <div class="row">
+        <div><strong>Camilla:</strong> ${a.camilla}</div>
+        <div><strong>Hora:</strong> ${a.hora}</div>
+        <div class="badge">Prio: ${a.prioridad}</div>
+      </div>
+      ${a.paciente ? <div><strong>Paciente:</strong> ${a.paciente}</div> : ''}
+      ${a.patologia ? <div><strong>Patología:</strong> ${a.patologia}</div> : ''}
+      <div><strong>Urgencia:</strong> ${a.urgencia || '-'}</div>
+      <div><strong>Necesidad:</strong> ${a.necesidad || '-'}</div>
+      <div class="small">ID: ${a.id}</div>
+    </div>
+  `;
+}
 
-                html += `
-                    <div class="alerta ${urgenciaClase} ${tachado ? 'tachado' : ''}" data-id="${id}">
-                        <p><strong>Camilla:</strong> ${data.camilla}</p>
-                        <p><strong>Hora:</strong> ${data.hora}</p>
-                        ${data.patologia ? `<p><strong>Patología:</strong> ${data.patologia}</p>` : ''}
-                        <p><strong>Urgencia:</strong> ${data.urgencia}</p>
-                        <p><strong>Necesidad:</strong> ${data.necesidad}</p>
-                    </div>
-                `;
-            });
-            document.getElementById('contenedor-alertas').innerHTML = html;
-        })
-        .catch(error => {
-            document.getElementById('contenedor-alertas').innerHTML = `
-                <div class="alerta alto">
-                    <p>Error al obtener datos</p>
-                </div>
-            `;
-        });
+function actualizarAlertas(){
+  fetch('/datos')
+    .then(r=>r.json())
+    .then(arr=>{
+      const html = arr.map(itemAlertaHTML).join('');
+      const cont = document.getElementById('contenedor-alertas');
+      if(cont) cont.innerHTML = html;
+    });
 }
 
 setInterval(actualizarAlertas, 2000);
-window.onload = actualizarAlertas;
+window.addEventListener('load', actualizarAlertas);
+
+// Solo admin: click para tachar
+document.addEventListener('click', (e)=>{
+  const card = e.target.closest('.alerta');
+  if(!card) return;
+  if(!location.pathname.includes('/admin')) return;
+
+  const id = card.dataset.id;
+  fetch('/tachar', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({id})
+  }).then(()=>actualizarAlertas());
+});
