@@ -2,8 +2,9 @@ from flask import Flask, jsonify, request, render_template, redirect, url_for, s
 from flask_cors import CORS
 from datetime import datetime
 import uuid
+import copy
 
-app = Flask(__name__)
+app = Flask(_name_)
 CORS(app)
 app.secret_key = "tcc_secret_2024"
 
@@ -30,7 +31,6 @@ DEFAULT_SETTINGS = {
     ],
 
     # Reglas extra de prioridad por patología (opcional)
-    # suma al puntaje (baja=1, media=2, alta=3)
     "prioridad_patologia": {
         "acv": 2,
         "neumonia": 1
@@ -38,7 +38,7 @@ DEFAULT_SETTINGS = {
 }
 
 def get_settings(device_id: str):
-    return devices.get(device_id, DEFAULT_SETTINGS)
+    return devices.get(device_id, copy.deepcopy(DEFAULT_SETTINGS))
 
 def prioridad_score(urgencia: str, patologia: str):
     base = {"baja": 1, "media": 2, "alta": 3}.get((urgencia or "").lower(), 1)
@@ -63,17 +63,14 @@ def datos():
 # --------- Dispositivos / API ---------
 @app.route("/api/register", methods=["POST"])
 def api_register():
-    """Registro simple: genera un device_id.
-       (En producción: validar, persistir, etc.)"""
+    """Registro simple: genera un device_id."""
     new_id = str(uuid.uuid4())[:8]
     if new_id not in devices:
-        devices[new_id] = DEFAULT_SETTINGS.copy()
+        devices[new_id] = copy.deepcopy(DEFAULT_SETTINGS)
     return jsonify({"device_id": new_id})
 
 @app.route("/api/settings", methods=["GET", "PUT"])
 def api_settings():
-    """GET: el ESP32 o el panel pueden leer la config de un device
-       PUT: el admin actualiza la config (paciente, camilla, patologia, botones)"""
     device_id = request.args.get("device_id", "default")
 
     if request.method == "GET":
@@ -85,8 +82,7 @@ def api_settings():
         return "No autorizado", 401
 
     data = request.json or {}
-    # Si el device no existe aún, se crea con copia de DEFAULT
-    cur = devices.get(device_id, DEFAULT_SETTINGS.copy())
+    cur = devices.get(device_id, copy.deepcopy(DEFAULT_SETTINGS))
 
     # Campos simples
     for k in ["paciente", "camilla", "patologia"]:
@@ -95,7 +91,6 @@ def api_settings():
 
     # Botones
     if "botones" in data and isinstance(data["botones"], list):
-        # Esperamos 4 elementos
         nuevos = []
         for i in range(min(4, len(data["botones"]))):
             b = data["botones"][i]
@@ -104,7 +99,6 @@ def api_settings():
             if urg not in ["baja", "media", "alta"]:
                 urg = "baja"
             nuevos.append({"label": label, "urgencia": urg})
-        # completar a 4
         while len(nuevos) < 4:
             nuevos.append({"label": f"BTN{len(nuevos)+1}", "urgencia": "baja"})
         cur["botones"] = nuevos
@@ -118,17 +112,12 @@ def api_settings():
 
 @app.route("/api/alerts", methods=["POST"])
 def api_alerts():
-    """El ESP32 envía aquí.
-       Campos esperados: device_id, boton_idx, necesidad, urgencia, camilla, paciente, patologia, hora(opt)"""
     data = request.json or {}
-
-    # completar campos usando settings si faltan
     device_id = data.get("device_id", "default")
     s = get_settings(device_id)
 
     boton_idx = int(data.get("boton_idx", -1))
     if 0 <= boton_idx < 4:
-        # completar con lo definido en settings si no vino
         if not data.get("necesidad"):
             data["necesidad"] = s["botones"][boton_idx]["label"]
         if not data.get("urgencia"):
@@ -141,18 +130,12 @@ def api_alerts():
     if not data.get("patologia"):
         data["patologia"] = s.get("patologia", "")
 
-    # Hora y timestamp
     if not data.get("hora"):
         data["hora"] = datetime.now().strftime("%H:%M:%S")
     data["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Prioridad
     data["prioridad"] = prioridad_score(data.get("urgencia", "baja"), data.get("patologia", ""))
-
-    # ID legible
     data["id"] = f"{device_id}-{data['camilla']}-{data['hora']}-{data.get('necesidad','')}"
-
-    # Estado tachado
     data["tachado"] = False
 
     alertas.append(data)
@@ -163,7 +146,6 @@ def api_alerts():
 def admin():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    # lista de devices conocidos (incluye "default" virtual)
     known = ["default"] + list(devices.keys())
     return render_template("admin.html", device_ids=known)
 
@@ -180,7 +162,7 @@ def login():
 
 @app.route("/logout")
 def logout():
-    session["logged_in"] = False
+    session.clear()
     return redirect(url_for("index"))
 
 @app.route("/limpiar", methods=["POST"])
@@ -202,7 +184,6 @@ def tachar():
             break
     return jsonify({"ok": True})
 
-# Dev helpers locales
+# --------- Main ---------
 if _name_ == "_main_":
-    app.run(debug=True)
-
+    app.run(debug=True, host="0.0.0.0", port=5000)
