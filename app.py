@@ -3,7 +3,7 @@ from flask_cors import CORS
 from datetime import datetime
 import uuid
 
-app = Flask(_name_)
+app = Flask(__name__)
 CORS(app)
 app.secret_key = "tcc_secret_2024"
 
@@ -205,3 +205,4 @@ def tachar():
 # Dev helpers locales
 if _name_ == "_main_":
     app.run(debug=True)
+
