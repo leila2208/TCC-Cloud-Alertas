@@ -3,26 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login - Panel</title>
+<title>Login TCC</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-<div class="container mt-5" style="max-width: 400px;">
-    <h2 class="mb-4 text-center">Login</h2>
-    {% if error %}
-        <div class="alert alert-danger">{{ error }}</div>
-    {% endif %}
-    <form method="POST">
-        <div class="mb-3">
-            <label for="usuario" class="form-label">Usuario</label>
-            <input type="text" class="form-control" id="usuario" name="usuario" required>
+<body class="bg-light">
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-4">
+            <div class="card p-4 shadow">
+                <h3 class="text-center mb-3">Iniciar Sesión</h3>
+                {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                <form method="post">
+                    <input class="form-control mb-2" type="text" name="usuario" placeholder="Usuario" required>
+                    <input class="form-control mb-2" type="password" name="clave" placeholder="Contraseña" required>
+                    <button class="btn btn-primary w-100">Ingresar</button>
+                </form>
+            </div>
         </div>
-        <div class="mb-3">
-            <label for="clave" class="form-label">Contraseña</label>
-            <input type="password" class="form-control" id="clave" name="clave" required>
-        </div>
-        <button type="submit" class="btn btn-primary w-100">Ingresar</button>
-    </form>
+    </div>
 </div>
 </body>
 </html>
