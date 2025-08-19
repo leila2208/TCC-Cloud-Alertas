@@ -10,6 +10,6 @@ def require_roles(*roles):
             if current_user.role not in roles:
                 abort(403)
             return func(*args, **kwargs)
-        inner._name_ = func._name_
+        inner.__name__ = func.__name__
         return inner
     return wrapper
