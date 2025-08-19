@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from models import db, Hospital, User, Device, Patient, Alert, SUPERADMIN, ADMIN, NURSE, PATIENT
 from utils import require_roles
 
-views_bp = Blueprint("views", _name_)
+views_bp = Blueprint("views", __name__)
 
 @views_bp.route("/")
 def landing():
