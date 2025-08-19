@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, UserMixin
 from models import db, User, Hospital, SUPERADMIN, ADMIN, NURSE, PATIENT
 
-auth_bp = Blueprint("auth", _name_)
+auth_bp = Blueprint("auth", __name__)
 
 # Flask-Login setup
 login_manager = LoginManager()
