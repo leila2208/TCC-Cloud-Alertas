@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Crear Admin de Hospital</h2>
+<form method="post" class="card">
+  <label>Hospital</label>
+  <input name="hospital" required>
+  <label>Nombre</label>
+  <input name="name" required>
+  <label>Email</label>
+  <input name="email" type="email" required>
+  <label>Contraseña</label>
+  <input name="password" type="password" required>
+  <button class="btn">Crear</button>
+</form>
+{% endblock %}
