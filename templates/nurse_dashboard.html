@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Tablero de Enfermería – {{ hospital.name }}</h2>
+<p>Toque una alerta para marcarla como atendida (o sacar el tildado).</p>
+<div id="alerts"></div>
+<script>
+  const HOSPITAL_ID = {{ hospital.id }};
+  const CAN_TOGGLE = true;
+</script>
+<script src="/static/alertas.js"></script>
+{% endblock %}
