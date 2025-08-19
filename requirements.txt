@@ -1,6 +1,10 @@
-Flask==2.3.2
-Flask-Cors==3.0.10
-requests==2.31.0
-gunicorn==20.1.0
-Flask-Login==0.6.2
-Flask-SQLAlchemy==3.0.3
+Flask==3.0.3
+Flask-Cors==4.0.1
+Flask-Login==0.6.3
+Flask-WTF==1.2.1
+Flask-SQLAlchemy==3.1.1
+email-validator==2.2.0
+WTForms==3.1.2
+gunicorn==23.0.0
+psycopg2-binary==2.9.9   # para conectar con PostgreSQL en producción
+python-dotenv==1.0.1     # para manejar variables de entorno
