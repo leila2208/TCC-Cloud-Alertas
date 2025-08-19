@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Historial del Paciente – {{ hospital.name }}</h2>
+<div id="alerts"></div>
+<script>
+  const HOSPITAL_ID = {{ hospital.id }};
+  const CAN_TOGGLE = false;
+</script>
+<script src="/static/alertas.js"></script>
+{% endblock %}
