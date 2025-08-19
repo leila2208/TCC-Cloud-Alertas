@@ -8,7 +8,7 @@ from api import api_bp
 from config import Config
 
 def create_app():
-    app = Flask(_name_)
+    app = Flask(__name__)
     app.config.from_object(Config)
     CORS(app, resources={r"/": {"origins": ""}})
 
@@ -46,3 +46,4 @@ app = create_app()
 
 if _name_ == "_main_":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
