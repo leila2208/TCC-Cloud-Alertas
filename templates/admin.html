@@ -1,61 +1,16 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8"/>
-  <title>Admin - TCC</title>
-  <link rel="stylesheet" href="/static/styles.css"/>
-  <style>
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .card { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
-    label { display:block; font-size: 14px; margin-top: 8px; }
-    input, select { width: 100%; padding: 8px; margin-top: 4px; }
-    .fila { display:flex; gap: 8px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-  <div class="barra-superior">
-    <button class="btn" onclick="location.href='/'">← Público</button>
-    <button class="btn" onclick="location.href='/logout'">Salir</button>
-  </div>
-
-  <h1>Panel de Administración</h1>
-
-  <div class="grid">
-    <div class="card">
-      <h3>Config del Dispositivo</h3>
-      <label>Seleccionar Device ID</label>
-      <select id="deviceId"></select>
-
-      <label>Paciente</label>
-      <input id="paciente" placeholder="Nombre del paciente"/>
-
-      <label>Camilla</label>
-      <input id="camilla" type="number" min="1"/>
-
-      <label>Patología</label>
-      <input id="patologia" placeholder="Ej: ACV, Neumonía"/>
-
-      <h4>Botones</h4>
-      <div id="botones"></div>
-
-      <h4>Prioridad extra por Patología</h4>
-      <small>(opcional, números enteros: 0,1,2...)</small>
-      <div id="prioPat"></div>
-
-      <button class="btn primario" style="margin-top:12px" onclick="guardar()">💾 Guardar</button>
+    <div class="container mt-5 text-center">
+        <h1>Zona Admin</h1>
+        <p>Bienvenido, administrador.</p>
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Cerrar sesión</a>
     </div>
-
-    <div class="card">
-      <h3>Alertas</h3>
-      <button class="btn" onclick="limpiarAlertas()">🧹 Limpiar</button>
-      <div id="contenedor-alertas" style="margin-top:10px;"></div>
-    </div>
-  </div>
-
-  <script>
-    const deviceIds = {{ device_ids|tojson }};
-  </script>
-  <script src="/static/admin.js"></script>
-  <script src="/static/alertas.js"></script>
 </body>
 </html>
