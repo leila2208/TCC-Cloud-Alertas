@@ -1,61 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
-{% if superadmin %}
-  <h2>Superadmin</h2>
-  <p>Hospitales:</p>
-  <ul class="list">
-    {% for h in hospitals %}
-      <li><a href="/alerts?hospital_id={{h.id}}">{{ h.name }}</a></li>
+<h2>Dashboard Admin</h2>
+<div id="alerts">
+    {% for alert in alerts %}
+        <div class="alert-card">
+            <strong>{{ alert.device.name }}</strong>:
+            {{ alert.message }} -
+            {{ alert.timestamp }}
+            [{{ alert.status }}]
+        </div>
     {% endfor %}
-  </ul>
-  <a class="btn" href="/register-admin">Crear admin de hospital</a>
-{% else %}
-  <h2>Panel del Administrador – {{ hospital.name }}</h2>
-  {% include "_stats_cards.html" %}
-  <div class="grid">
-    <div class="card">
-      <h3>Alta de enfermera</h3>
-      <form method="post" action="/admin/create-nurse">
-        <input name="name" placeholder="Nombre" required>
-        <input name="email" type="email" placeholder="Email" required>
-        <input name="password" type="password" placeholder="Contraseña" required>
-        <button class="btn">Crear</button>
-      </form>
-      <ul class="list">
-        {% for n in nurses %}<li>{{ n.name }} – {{ n.email }}</li>{% endfor %}
-      </ul>
-    </div>
-
-    <div class="card">
-      <h3>Pacientes</h3>
-      <form method="post" action="/admin/create-patient">
-        <input name="name" placeholder="Nombre completo" required>
-        <input name="bed" placeholder="Cama/Habitación">
-        <input name="diagnosis" placeholder="Diagnóstico (opcional)">
-        <button class="btn">Agregar</button>
-      </form>
-      <ul class="list">
-        {% for p in patients %}<li>{{ p.full_name }} – cama {{ p.bed or '—' }}</li>{% endfor %}
-      </ul>
-    </div>
-
-    <div class="card">
-      <h3>Dispositivos TCC</h3>
-      <form method="post" action="/admin/create-device">
-        <input name="name" placeholder="Nombre visible" required>
-        <input name="device_key" placeholder="device_key (para ESP32)" required>
-        <select name="patient_id">
-          <option value="">(sin paciente)</option>
-          {% for p in patients %}<option value="{{p.id}}">{{p.full_name}}</option>{% endfor %}
-        </select>
-        <button class="btn">Registrar</button>
-      </form>
-      <ul class="list">
-        {% for d in devices %}
-          <li>{{ d.name }} – key: <code>{{ d.device_key }}</code> – paciente: {{ d.patient.full_name if d.patient else '—' }}</li>
-        {% endfor %}
-      </ul>
-    </div>
-  </div>
-{% endif %}
+</div>
 {% endblock %}
