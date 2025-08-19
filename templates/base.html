@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>{{ title or "TCC" }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="/static/styles.css" rel="stylesheet">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" onclick="location.href='/'">TCC</div>
+    <nav>
+      <a href="/">Inicio</a>
+      <a href="/alerts?hospital_id={{ (hospital.id if hospital) or '' }}">Alertas</a>
+      <a href="/login">Ingresar</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
