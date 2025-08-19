@@ -1,198 +1,217 @@
+# app.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from config import Config
-from models import db, Hospital, User, Role
-from functools import wraps
-import logging
-from flask_restx import Api, Resource, fields
+from flask_restx import Api, Resource, fields, Namespace
+from werkzeug.security import generate_password_hash, check_password_hash
+import os
 
-# ====================== LOGGING ======================
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s [%(levelname)s] %(message)s')
+# ---------------------
+# Configuración básica
+# ---------------------
+app = Flask(__name__)
+CORS(app)
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "supersecretkey")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "sqlite:///app.db")
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "jwtsecretkey")
 
-# ====================== CREACIÓN DE APP ======================
-def create_app():
-    app = Flask(__name__)
-    app.config.from_object(Config)
-    CORS(app)
-    db.init_app(app)
-    jwt = JWTManager(app)
-    api = Api(app, version='1.0', title='TCC API',
-              description='API de ejemplo profesional con Flask, JWT y Swagger')
+# ---------------------
+# Extensiones
+# ---------------------
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+login_manager = LoginManager(app)
+jwt = JWTManager(app)
+api = Api(app, title="Tienda API", version="1.0", description="API lista para producción")
 
-    with app.app_context():
-        db.create_all()
-        seed_superadmin()
+# ---------------------
+# Modelos
+# ---------------------
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    role = db.Column(db.String(20), default="user")  # user o admin
 
-    # ====================== MODELOS PARA SWAGGER ======================
-    hospital_model = api.model('Hospital', {
-        'id': fields.Integer(readonly=True),
-        'name': fields.String(required=True)
-    })
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
 
-    user_model = api.model('User', {
-        'id': fields.Integer(readonly=True),
-        'username': fields.String(required=True),
-        'role': fields.String(required=True)
-    })
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
-    # ====================== DECORADOR DE ROLES ======================
-    def role_required(required_role):
-        def decorator(func):
-            @wraps(func)
-            @jwt_required()
-            def wrapper(*args, **kwargs):
-                username = get_jwt_identity()
-                user = User.query.filter_by(username=username).first()
-                if not user or user.role.name != required_role:
-                    return jsonify({"error": "No autorizado"}), 403
-                return func(*args, **kwargs)
-            return wrapper
-        return decorator
+class Product(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.String(255))
+    price = db.Column(db.Float, nullable=False)
+    stock = db.Column(db.Integer, default=0)
 
-    # ====================== RUTAS ======================
-    @app.route("/")
-    def index():
-        return jsonify({"message": "App corriendo correctamente"})
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id"), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), default="pending")  # pending, completed, cancelled
 
-    # ---------- HOSPITALES ----------
-    @api.route('/hospitals')
-    class HospitalList(Resource):
-        @jwt_required()
-        @api.marshal_list_with(hospital_model)
-        def get(self):
-            hospitals = Hospital.query.all()
-            return hospitals
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
-        @role_required("superadmin")
-        @api.expect(hospital_model)
-        def post(self):
-            data = request.get_json()
-            name = data.get("name")
-            if not name:
-                return {"error": "Falta el nombre"}, 400
-            if Hospital.query.filter_by(name=name).first():
-                return {"error": "Hospital ya existe"}, 400
-            hospital = Hospital(name=name)
-            db.session.add(hospital)
-            db.session.commit()
-            logging.info(f"Hospital creado: {name}")
-            return {"message": "Hospital creado", "id": hospital.id}, 201
+# ---------------------
+# Serializadores Flask-RESTx
+# ---------------------
+auth_ns = Namespace('auth', description='Autenticación')
+products_ns = Namespace('products', description='Productos')
+orders_ns = Namespace('orders', description='Pedidos')
 
-    @api.route('/hospitals/<int:hospital_id>')
-    class HospitalDetail(Resource):
-        @jwt_required()
-        @api.marshal_with(hospital_model)
-        def get(self, hospital_id):
-            hospital = Hospital.query.get_or_404(hospital_id)
-            return hospital
+user_model = auth_ns.model('User', {
+    'username': fields.String(required=True),
+    'password': fields.String(required=True)
+})
 
-        @role_required("superadmin")
-        @api.expect(hospital_model)
-        def put(self, hospital_id):
-            hospital = Hospital.query.get_or_404(hospital_id)
-            data = request.get_json()
-            name = data.get("name")
-            if name:
-                hospital.name = name
-                db.session.commit()
-                logging.info(f"Hospital actualizado: {name}")
-            return {"message": "Hospital actualizado", "id": hospital.id}
+product_model = products_ns.model('Product', {
+    'name': fields.String(required=True),
+    'description': fields.String(),
+    'price': fields.Float(required=True),
+    'stock': fields.Integer(required=True)
+})
 
-        @role_required("superadmin")
-        def delete(self, hospital_id):
-            hospital = Hospital.query.get_or_404(hospital_id)
-            db.session.delete(hospital)
-            db.session.commit()
-            logging.info(f"Hospital eliminado: {hospital.name}")
-            return {"message": "Hospital eliminado"}
+order_model = orders_ns.model('Order', {
+    'product_id': fields.Integer(required=True),
+    'quantity': fields.Integer(required=True)
+})
 
-    # ---------- USUARIOS ----------
-    @api.route('/users')
-    class UserList(Resource):
-        @role_required("superadmin")
-        @api.marshal_list_with(user_model)
-        def get(self):
-            users = User.query.all()
-            return [{"id": u.id, "username": u.username, "role": u.role.name} for u in users]
-
-        @role_required("superadmin")
-        @api.expect(user_model)
-        def post(self):
-            data = request.get_json()
-            username = data.get("username")
-            password = data.get("password")
-            role_name = data.get("role", "user")
-            if not username or not password:
-                return {"error": "Falta username o password"}, 400
-            if User.query.filter_by(username=username).first():
-                return {"error": "Usuario ya existe"}, 400
-            role = Role.query.filter_by(name=role_name).first()
-            if not role:
-                role = Role(name=role_name)
-                db.session.add(role)
-                db.session.commit()
-            user = User(username=username, role=role)
-            user.set_password(password)
-            db.session.add(user)
-            db.session.commit()
-            logging.info(f"Usuario creado: {username}")
-            return {"message": "Usuario creado", "id": user.id}, 201
-
-    # ---------- LOGIN ----------
-    @app.route("/login", methods=["POST"])
-    def login():
-        data = request.get_json()
-        username = data.get("username")
-        password = data.get("password")
-        user = User.query.filter_by(username=username).first()
-        if not user or not user.check_password(password):
-            logging.warning(f"Login fallido: {username}")
-            return {"error": "Usuario o contraseña incorrecta"}, 401
-        access_token = create_access_token(identity=username)
-        logging.info(f"Login exitoso: {username}")
-        return {"access_token": access_token, "role": user.role.name}
-
-    # ====================== MANEJO GLOBAL DE ERRORES ======================
-    @app.errorhandler(400)
-    def bad_request(e):
-        return jsonify(error="Solicitud incorrecta"), 400
-
-    @app.errorhandler(401)
-    def unauthorized(e):
-        return jsonify(error="No autorizado"), 401
-
-    @app.errorhandler(403)
-    def forbidden(e):
-        return jsonify(error="Prohibido"), 403
-
-    @app.errorhandler(404)
-    def not_found(e):
-        return jsonify(error="No encontrado"), 404
-
-    @app.errorhandler(500)
-    def server_error(e):
-        logging.error(f"Error interno: {e}")
-        return jsonify(error="Error interno del servidor"), 500
-
-    return app
-
-# ====================== SEED INICIAL ======================
-def seed_superadmin():
-    admin_role = Role.query.filter_by(name="superadmin").first()
-    if not admin_role:
-        admin_role = Role(name="superadmin")
-        db.session.add(admin_role)
+# ---------------------
+# Endpoints Auth
+# ---------------------
+@auth_ns.route("/register")
+class Register(Resource):
+    @auth_ns.expect(user_model)
+    def post(self):
+        data = request.json
+        if User.query.filter_by(username=data['username']).first():
+            return {"message": "Usuario ya existe"}, 400
+        user = User(username=data['username'])
+        user.set_password(data['password'])
+        db.session.add(user)
         db.session.commit()
-    superadmin = User.query.filter_by(username="superadmin").first()
-    if not superadmin:
-        superadmin = User(username="superadmin", role=admin_role)
-        superadmin.set_password("admin123")
-        db.session.add(superadmin)
-        db.session.commit()
+        return {"message": "Usuario registrado"}, 201
 
-# ====================== RUN ======================
+@auth_ns.route("/login")
+class Login(Resource):
+    @auth_ns.expect(user_model)
+    def post(self):
+        data = request.json
+        user = User.query.filter_by(username=data['username']).first()
+        if user and user.check_password(data['password']):
+            access_token = create_access_token(identity=user.id)
+            return {"access_token": access_token, "role": user.role}, 200
+        return {"message": "Usuario o contraseña incorrectos"}, 401
+
+@auth_ns.route("/logout")
+class Logout(Resource):
+    @login_required
+    def post(self):
+        logout_user()
+        return {"message": "Sesión cerrada"}, 200
+
+# ---------------------
+# Endpoints Productos
+# ---------------------
+@products_ns.route("/")
+class ProductList(Resource):
+    @products_ns.marshal_list_with(product_model)
+    def get(self):
+        return Product.query.all()
+
+    @jwt_required()
+    @products_ns.expect(product_model)
+    def post(self):
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        if user.role != "admin":
+            return {"message": "Solo admins pueden agregar productos"}, 403
+        data = request.json
+        product = Product(**data)
+        db.session.add(product)
+        db.session.commit()
+        return {"message": "Producto agregado"}, 201
+
+@products_ns.route("/<int:id>")
+class ProductDetail(Resource):
+    @products_ns.marshal_with(product_model)
+    def get(self, id):
+        product = Product.query.get_or_404(id)
+        return product
+
+    @jwt_required()
+    @products_ns.expect(product_model)
+    def put(self, id):
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        if user.role != "admin":
+            return {"message": "Solo admins pueden editar productos"}, 403
+        product = Product.query.get_or_404(id)
+        for key, value in request.json.items():
+            setattr(product, key, value)
+        db.session.commit()
+        return {"message": "Producto actualizado"}
+
+    @jwt_required()
+    def delete(self, id):
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        if user.role != "admin":
+            return {"message": "Solo admins pueden eliminar productos"}, 403
+        product = Product.query.get_or_404(id)
+        db.session.delete(product)
+        db.session.commit()
+        return {"message": "Producto eliminado"}
+
+# ---------------------
+# Endpoints Pedidos
+# ---------------------
+@orders_ns.route("/")
+class OrderList(Resource):
+    @jwt_required()
+    def get(self):
+        user_id = get_jwt_identity()
+        return Order.query.filter_by(user_id=user_id).all()
+
+    @jwt_required()
+    @orders_ns.expect(order_model)
+    def post(self):
+        user_id = get_jwt_identity()
+        data = request.json
+        product = Product.query.get_or_404(data['product_id'])
+        if product.stock < data['quantity']:
+            return {"message": "Stock insuficiente"}, 400
+        product.stock -= data['quantity']
+        order = Order(user_id=user_id, product_id=product.id, quantity=data['quantity'])
+        db.session.add(order)
+        db.session.commit()
+        return {"message": "Pedido creado"}, 201
+
+# ---------------------
+# Registrar Namespaces
+# ---------------------
+api.add_namespace(auth_ns, path="/auth")
+api.add_namespace(products_ns, path="/products")
+api.add_namespace(orders_ns, path="/orders")
+
+# ---------------------
+# Ping de prueba
+# ---------------------
+@app.route("/ping")
+def ping():
+    return {"message": "pong"}
+
+# ---------------------
+# Ejecutar app
+# ---------------------
 if __name__ == "__main__":
-    app = create_app()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
