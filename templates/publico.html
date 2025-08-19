@@ -1,16 +1,66 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Público</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alertas en tiempo real</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body { background-color: #f7f9fc; font-family: 'Segoe UI', sans-serif; }
+h1 { text-align: center; color: #0077b6; margin-top: 30px; }
+.alerta-card { margin: 10px auto; width: 90%; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); cursor: pointer; transition: 0.3s; }
+.tachado { opacity: 0.6; text-decoration: line-through; }
+.urgencia-bajo { border-left: 6px solid #28a745; }
+.urgencia-medio { border-left: 6px solid #ffc107; }
+.urgencia-alto { border-left: 6px solid #dc3545; }
+.boton-accion { position: fixed; top: 20px; width: 50px; height: 50px; border-radius: 50%; background-color: #0077b6; color: white; font-size: 24px; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+.volver { left: 20px; }
+.login { right: 20px; }
+</style>
 </head>
 <body>
-    <div class="container mt-5 text-center">
-        <h1>Zona Pública</h1>
-        <p>Bienvenido, usuario público.</p>
-        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Cerrar sesión</a>
-    </div>
+<h1>Alertas en tiempo real</h1>
+
+<button class="boton-accion volver" onclick="window.location.href='https://tccweb.my.canva.site/'">⬅</button>
+<button class="boton-accion login" onclick="window.location.href='/login'">👤</button>
+
+<div id="contenedor-alertas"></div>
+
+<script src="/static/alertas.js"></script>
+<script>
+function renderAlerta(data) {
+    let urgenciaClase = data.urgencia === 'baja' ? 'urgencia-bajo' : data.urgencia === 'media' ? 'urgencia-medio' : 'urgencia-alto';
+    let id = data.camilla + '-' + data.hora + '-' + data.necesidad;
+    let tachado = data.tachado ? 'tachado' : '';
+    return `<div class="card alerta-card ${urgenciaClase} ${tachado}" data-id="${id}">
+        <div class="card-body">
+            <h5 class="card-title">Camilla: ${data.camilla}</h5>
+            <p class="card-text"><strong>Hora:</strong> ${data.hora}</p>
+            ${data.patologia ? <p class="card-text"><strong>Patología:</strong> ${data.patologia}</p> : ''}
+            <p class="card-text"><strong>Urgencia:</strong> ${data.urgencia}</p>
+            <p class="card-text"><strong>Necesidad:</strong> ${data.necesidad}</p>
+        </div>
+    </div>`;
+}
+
+function actualizarAlertas() {
+    fetch('/datos')
+        .then(res => res.json())
+        .then(alertas => {
+            document.getElementById('contenedor-alertas').innerHTML = alertas.map(renderAlerta).join('');
+        });
+}
+
+setInterval(actualizarAlertas, 2000);
+window.onload = actualizarAlertas;
+
+document.addEventListener('click', function(e){
+    if(e.target.closest('.alerta-card')){
+        let id = e.target.closest('.alerta-card').dataset.id;
+        fetch('/tachar', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id}) })
+        .then(() => actualizarAlertas());
+    }
+});
+</script>
 </body>
 </html>
