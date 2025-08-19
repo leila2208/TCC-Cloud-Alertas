@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Alertas en tiempo real {{ '– ' + hospital.name if hospital else '' }}</h2>
+<div id="alerts"></div>
+<script>
+  const HOSPITAL_ID = {{ (hospital.id if hospital) or 'null' }};
+</script>
+<script src="/static/alertas.js"></script>
+{% endblock %}
