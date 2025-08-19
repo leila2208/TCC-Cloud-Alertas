@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from models import db, Device, Alert, Patient, Hospital
 from datetime import datetime
 
-api_bp = Blueprint("api", _name_, url_prefix="/api")
+api_bp = Blueprint("api", __name__, url_prefix="/api")
 
 # POST /api/alerts
 # BODY JSON: { device_key, necesidad, urgencia, patologia, cama, hora? }
